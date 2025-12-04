@@ -8,6 +8,23 @@ const CONFIG = {
   authorizationEndpoint: 'https://sandbox-login.uber.com/oauth/v2/authorize',
 };
 
+// Redirect to Uber SSO
+function redirectToUberSSO() {
+  const state = generateRandomString();
+  localStorage.setItem('uber_auth_state', state);
+
+  const params = new URLSearchParams({
+    client_id: CONFIG.clientId,
+    response_type: 'code',
+    redirect_uri: CONFIG.redirectURI,
+    scope: CONFIG.scope,
+    state: state,
+  });
+
+  const authUrl = `${CONFIG.authorizationEndpoint}?${params.toString()}`;
+  window.location.href = authUrl;
+}
+
 // Generate random string for state parameter (CSRF protection)
 function generateRandomString(length = 32) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -39,26 +56,7 @@ function showUserInfo(data) {
 }
 
 // Handle authentication button click - redirect to Uber authorization
-authButton.addEventListener('click', function() {
-  const state = generateRandomString();
-
-  // Store state for validation on callback
-  localStorage.setItem('uber_auth_state', state);
-
-  // Build authorization URL
-  const params = new URLSearchParams({
-    client_id: CONFIG.clientId,
-    response_type: 'code',
-    redirect_uri: CONFIG.redirectURI,
-    scope: CONFIG.scope,
-    state: state,
-  });
-
-  const authUrl = `${CONFIG.authorizationEndpoint}?${params.toString()}`;
-
-  // Redirect to Uber authorization page
-  window.location.href = authUrl;
-});
+authButton.addEventListener('click', redirectToUberSSO);
 
 // Check if we have tokens from callback (stored in sessionStorage)
 function checkForTokens() {
@@ -87,3 +85,9 @@ function checkForTokens() {
 
 // Check for tokens on page load
 checkForTokens();
+
+// Auto-redirect to SSO if origin=uber query param is present
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('origin') === 'uber') {
+  redirectToUberSSO();
+}

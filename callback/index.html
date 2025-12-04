@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uber Auth - Callback</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Processing authentication...</h1>
+    <p class="subtitle" id="subtitle">Please wait while we complete your sign-in.</p>
+    <div id="status" class="status"></div>
+    <div id="userInfo" class="user-info"></div>
+  </div>
+
+  <script>
+    // Configuration
+    const TOKEN_EXCHANGE_URL = 'http://localhost:8080/token-exchange';
+    const USER_INFO_URL = 'http://localhost:8080/user-info';
+    const MAIN_PAGE_URL = 'https://c0llinn.github.io/TestUberWebviewSSO/';
+
+    const statusDiv = document.getElementById('status');
+    const spinner = document.getElementById('spinner');
+    const title = document.getElementById('title');
+    const subtitle = document.getElementById('subtitle');
+    const userInfoDiv = document.getElementById('userInfo');
+
+    function showError(message) {
+      spinner.style.display = 'none';
+      title.textContent = 'Authentication Failed';
+      subtitle.textContent = '';
+      statusDiv.textContent = message;
+      statusDiv.className = 'status error';
+    }
+
+    function showSuccess(message) {
+      spinner.style.display = 'none';
+      title.textContent = 'Authentication Successful!';
+      subtitle.textContent = message;
+      statusDiv.className = 'status success';
+      statusDiv.textContent = '✓ ' + message;
+    }
+
+    (function handleCallback() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      const error = urlParams.get('error');
+      const errorDescription = urlParams.get('error_description');
+
+      console.log('Callback received:', { code: code ? 'present' : 'missing', state, error });
+
+      // Check for errors from Uber
+      if (error) {
+        showError(errorDescription || error);
+        return;
+      }
+
+      // Validate state to prevent CSRF
+      const storedState = localStorage.getItem('uber_auth_state');
+      if (state && storedState && state !== storedState) {
+        showError('State mismatch. Potential CSRF attack.');
+        return;
+      }
+      localStorage.removeItem('uber_auth_state');
+
+      if (code) {
+        subtitle.textContent = 'Exchanging authorization code for tokens...';
+
+        // Exchange authorization code for tokens via local server
+        fetch(TOKEN_EXCHANGE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ code })
+        })
+        .then(response => {
+          console.log('Token exchange response status:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Token exchange response:', data);
+
+          if (data.error) {
+            showError(data.error_description || data.error);
+          } else if (data.access_token) {
+            // Store tokens in sessionStorage
+            sessionStorage.setItem('uber_access_token', data.access_token);
+            if (data.token_type) sessionStorage.setItem('uber_token_type', data.token_type);
+            if (data.expires_in) sessionStorage.setItem('uber_expires_in', data.expires_in);
+            if (data.refresh_token) sessionStorage.setItem('uber_refresh_token', data.refresh_token);
+            if (data.scope) sessionStorage.setItem('uber_scope', data.scope);
+
+            showSuccess('Access token received! Fetching user info...');
+
+            // Fetch user information
+            fetchUserInfo(data.access_token);
+          } else {
+            showError('No access token in response');
+          }
+        })
+        .catch(err => {
+          console.error('Token exchange error:', err);
+          showError('Failed to exchange code for tokens. Make sure the local server is running on port 8080.');
+        });
+      } else {
+        showError('No authorization code received');
+      }
+    })();
+
+    // Fetch user info using access token
+    function fetchUserInfo(accessToken) {
+      subtitle.textContent = 'Fetching user profile...';
+
+      fetch(USER_INFO_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ access_token: accessToken })
+      })
+      .then(response => response.json())
+      .then(userData => {
+        console.log('User info:', userData);
+
+        if (userData.error) {
+          showError('Failed to fetch user info: ' + (userData.error_description || userData.error));
+          return;
+        }
+
+        // Display user info
+        showSuccess('User authenticated!');
+        displayUserInfo(userData);
+      })
+      .catch(err => {
+        console.error('User info fetch error:', err);
+        showSuccess('Token received but could not fetch user info');
+        userInfoDiv.innerHTML = '<p style="color: rgba(255,255,255,0.5);">User info unavailable</p>';
+        userInfoDiv.classList.add('visible');
+      });
+    }
+
+    function displayUserInfo(user) {
+      userInfoDiv.innerHTML = `
+        <h3>User Profile</h3>
+        <div class="user-details">
+          ${user.picture ? `<img src="${user.picture}" alt="Profile" class="user-avatar">` : ''}
+          <div class="user-fields">
+            <p><strong>Name:</strong> ${user.first_name || ''} ${user.last_name || ''}</p>
+            <p><strong>Email:</strong> ${user.email || 'N/A'}</p>
+            <p><strong>Phone:</strong> ${user.mobile_country_code || ''} ${user.mobile || 'N/A'}</p>
+            <p><strong>UUID:</strong> ${user.uuid || user.rider_id || 'N/A'}</p>
+          </div>
+        </div>
+      `;
+      userInfoDiv.classList.add('visible');
+    }
+  </script>
+</body>
+</html>

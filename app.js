@@ -3,9 +3,9 @@
 // ============================================
 const CONFIG = {
   clientId: 'GLd7MAvJLchMHFjBl9a4Unieo13kCBi9',
-  redirectURI: 'http://localhost:8081/callback.html',
+  redirectURI: 'https://c0llinn.github.io/TestUberWebviewSSO/callback',
   scope: 'profile',
-  authorizationEndpoint: 'https://auth.uber.com/oauth/v2/authorize',
+  authorizationEndpoint: 'https://sandbox-login.uber.com/oauth/v2/authorize',
 };
 
 // Generate random string for state parameter (CSRF protection)

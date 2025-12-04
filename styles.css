@@ -267,3 +267,82 @@ h1 {
   animation: spin 0.8s linear infinite;
   margin: 0 auto 24px;
 }
+
+/* User info display */
+.user-info {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: none;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.user-info.visible {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+.user-info h3 {
+  color: var(--uber-white);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-info h3::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--uber-green);
+  border-radius: 50%;
+}
+
+.user-details {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.user-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-fields {
+  flex: 1;
+}
+
+.user-fields p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.user-fields p:last-child {
+  margin-bottom: 0;
+}
+
+.user-fields strong {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.user-info pre {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

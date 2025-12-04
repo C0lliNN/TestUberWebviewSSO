@@ -3,14 +3,16 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 8080;
 
 // ============================================
 // CONFIGURATION - Replace with your credentials
 // ============================================
 const CLIENT_ID = 'GLd7MAvJLchMHFjBl9a4Unieo13kCBi9';
-const CLIENT_SECRET = '3S4TrbvcgIsY6LwvJrAfk0Sytsyq1JKlBKvrd9lq';  // Replace with your actual client secret
-const REDIRECT_URI = 'http://localhost:8081/callback.html';
+const CLIENT_SECRET = '3S4TrbvcgIsY6LwvJrAfk0Sytsyq1JKlBKvrd9lq';
+const REDIRECT_URI = 'https://c0llinn.github.io/TestUberWebviewSSO/callback';
+const TOKEN_ENDPOINT = 'sandbox-login.uber.com';  // Sandbox environment
+const API_ENDPOINT = 'sandbox-api.uber.com';  // Sandbox API
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -24,6 +26,13 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
+// CORS headers helper
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 // Handle token exchange with Uber
 function handleTokenExchange(req, res) {
   let body = '';
@@ -35,6 +44,7 @@ function handleTokenExchange(req, res) {
   req.on('end', () => {
     try {
       const { code } = JSON.parse(body);
+      console.log('Token exchange request received for code:', code.substring(0, 10) + '...');
 
       const postData = new URLSearchParams({
         client_id: CLIENT_ID,
@@ -44,8 +54,10 @@ function handleTokenExchange(req, res) {
         code: code,
       }).toString();
 
+      console.log('Sending token request to:', TOKEN_ENDPOINT);
+
       const options = {
-        hostname: 'auth.uber.com',
+        hostname: TOKEN_ENDPOINT,
         path: '/oauth/v2/token',
         method: 'POST',
         headers: {
@@ -62,9 +74,11 @@ function handleTokenExchange(req, res) {
         });
 
         tokenRes.on('end', () => {
-          res.writeHead(200, {
+          console.log('Token response status:', tokenRes.statusCode);
+          console.log('Token response:', tokenData);
+          res.writeHead(tokenRes.statusCode, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            ...CORS_HEADERS
           });
           res.end(tokenData);
         });
@@ -72,7 +86,7 @@ function handleTokenExchange(req, res) {
 
       tokenReq.on('error', error => {
         console.error('Error exchanging code for token:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.writeHead(500, { 'Content-Type': 'application/json', ...CORS_HEADERS });
         res.end(JSON.stringify({ error: 'token_exchange_failed', error_description: error.message }));
       });
 
@@ -80,7 +94,8 @@ function handleTokenExchange(req, res) {
       tokenReq.end();
 
     } catch (error) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
+      console.error('Parse error:', error);
+      res.writeHead(400, { 'Content-Type': 'application/json', ...CORS_HEADERS });
       res.end(JSON.stringify({ error: 'invalid_request', error_description: 'Invalid JSON body' }));
     }
   });
@@ -88,8 +103,16 @@ function handleTokenExchange(req, res) {
 
 // Serve static files
 function serveStaticFile(req, res) {
-  let filePath = req.url === '/' ? '/index.html' : req.url;
-  filePath = path.join(__dirname, filePath);
+  // Handle /callback route (strip query params and serve callback.html)
+  let urlPath = req.url.split('?')[0];
+
+  if (urlPath === '/') {
+    urlPath = '/index.html';
+  } else if (urlPath === '/callback' || urlPath === '/callback/') {
+    urlPath = '/callback.html';
+  }
+
+  let filePath = path.join(__dirname, urlPath);
 
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
@@ -118,6 +141,63 @@ function serveStaticFile(req, res) {
   });
 }
 
+// Handle fetching user info from Uber API
+function handleUserInfo(req, res) {
+  let body = '';
+
+  req.on('data', chunk => {
+    body += chunk.toString();
+  });
+
+  req.on('end', () => {
+    try {
+      const { access_token } = JSON.parse(body);
+      console.log('Fetching user info with token:', access_token.substring(0, 10) + '...');
+
+      const options = {
+        hostname: API_ENDPOINT,
+        path: '/v1.2/me',
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      const userReq = https.request(options, userRes => {
+        let userData = '';
+
+        userRes.on('data', chunk => {
+          userData += chunk;
+        });
+
+        userRes.on('end', () => {
+          console.log('User info response status:', userRes.statusCode);
+          console.log('User info response:', userData);
+          res.writeHead(userRes.statusCode, {
+            'Content-Type': 'application/json',
+            ...CORS_HEADERS
+          });
+          res.end(userData);
+        });
+      });
+
+      userReq.on('error', error => {
+        console.error('Error fetching user info:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json', ...CORS_HEADERS });
+        res.end(JSON.stringify({ error: 'user_info_failed', error_description: error.message }));
+      });
+
+      userReq.end();
+
+    } catch (error) {
+      console.error('Parse error:', error);
+      res.writeHead(400, { 'Content-Type': 'application/json', ...CORS_HEADERS });
+      res.end(JSON.stringify({ error: 'invalid_request', error_description: 'Invalid JSON body' }));
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
   // Handle token exchange endpoint
   if (req.method === 'POST' && req.url === '/token-exchange') {
@@ -125,13 +205,15 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Handle user info endpoint
+  if (req.method === 'POST' && req.url === '/user-info') {
+    handleUserInfo(req, res);
+    return;
+  }
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(200, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    });
+    res.writeHead(200, CORS_HEADERS);
     res.end();
     return;
   }
@@ -142,5 +224,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n🚗 Uber Auth Demo running at http://localhost:${PORT}`);
-  console.log(`\n⚠️  Make sure to set your CLIENT_SECRET in server.js\n`);
+  console.log(`   Token endpoint: ${TOKEN_ENDPOINT}`);
+  console.log(`   Redirect URI: ${REDIRECT_URI}\n`);
 });

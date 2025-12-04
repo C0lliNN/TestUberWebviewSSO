@@ -1,7 +1,5 @@
 const http = require('http');
 const https = require('https');
-const fs = require('fs');
-const path = require('path');
 
 const PORT = process.env.PORT || 8080;
 
@@ -13,18 +11,6 @@ const CLIENT_SECRET = '3S4TrbvcgIsY6LwvJrAfk0Sytsyq1JKlBKvrd9lq';
 const REDIRECT_URI = 'https://c0llinn.github.io/TestUberWebviewSSO/callback';
 const TOKEN_ENDPOINT = 'sandbox-login.uber.com';  // Sandbox environment
 const API_ENDPOINT = 'test-api.uber.com';  // Sandbox Riders API
-
-const MIME_TYPES = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
-};
 
 // CORS headers helper
 const CORS_HEADERS = {
@@ -101,46 +87,6 @@ function handleTokenExchange(req, res) {
   });
 }
 
-// Serve static files
-function serveStaticFile(req, res) {
-  // Handle /callback route (strip query params and serve callback.html)
-  let urlPath = req.url.split('?')[0];
-
-  if (urlPath === '/') {
-    urlPath = '/index.html';
-  } else if (urlPath === '/callback' || urlPath === '/callback/') {
-    urlPath = '/callback.html';
-  }
-
-  let filePath = path.join(__dirname, urlPath);
-
-  const ext = path.extname(filePath).toLowerCase();
-  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      if (err.code === 'ENOENT') {
-        // File not found - serve index.html
-        fs.readFile(path.join(__dirname, 'index.html'), (err, content) => {
-          if (err) {
-            res.writeHead(500);
-            res.end('Server Error');
-          } else {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(content);
-          }
-        });
-      } else {
-        res.writeHead(500);
-        res.end('Server Error');
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content);
-    }
-  });
-}
-
 // Handle fetching user info from Uber API
 function handleUserInfo(req, res) {
   let body = '';
@@ -200,6 +146,13 @@ function handleUserInfo(req, res) {
 }
 
 const server = http.createServer((req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200, CORS_HEADERS);
+    res.end();
+    return;
+  }
+
   // Handle token exchange endpoint
   if (req.method === 'POST' && req.url === '/token-exchange') {
     handleTokenExchange(req, res);
@@ -212,19 +165,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200, CORS_HEADERS);
-    res.end();
-    return;
-  }
-
-  // Serve static files
-  serveStaticFile(req, res);
+  // 404 for any other routes
+  res.writeHead(404, { 'Content-Type': 'application/json', ...CORS_HEADERS });
+  res.end(JSON.stringify({ error: 'not_found', error_description: 'Endpoint not found' }));
 });
 
 server.listen(PORT, () => {
-  console.log(`\n🚗 Uber Auth Demo running at http://localhost:${PORT}`);
+  console.log(`\n🚗 Uber Auth API Server running at http://localhost:${PORT}`);
+  console.log(`   Endpoints:`);
+  console.log(`     POST /token-exchange - Exchange auth code for tokens`);
+  console.log(`     POST /user-info - Fetch user info with access token`);
   console.log(`   Token endpoint: ${TOKEN_ENDPOINT}`);
   console.log(`   Redirect URI: ${REDIRECT_URI}\n`);
 });

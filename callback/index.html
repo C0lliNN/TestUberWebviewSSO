@@ -17,8 +17,8 @@
 
   <script>
     // Configuration
-    const TOKEN_EXCHANGE_URL = 'http://localhost:8080/token-exchange';
-    const USER_INFO_URL = 'http://localhost:8080/user-info';
+    const TOKEN_EXCHANGE_URL = 'https://testuberwebviewsso.onrender.com/token-exchange';
+    const USER_INFO_URL = 'https://testuberwebviewsso.onrender.com/user-info';
     const MAIN_PAGE_URL = 'https://c0llinn.github.io/TestUberWebviewSSO/';
 
     const statusDiv = document.getElementById('status');
@@ -104,7 +104,7 @@
         })
         .catch(err => {
           console.error('Token exchange error:', err);
-          showError('Failed to exchange code for tokens. Make sure the local server is running on port 8080.');
+          showError('Failed to exchange code for tokens. Server may be unavailable.');
         });
       } else {
         showError('No authorization code received');

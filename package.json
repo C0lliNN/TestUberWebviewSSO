@@ -1,0 +1,11 @@
+{
+  "name": "uber-auth-demo",
+  "version": "1.0.0",
+  "description": "Simple Uber OIDC authentication demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "keywords": ["uber", "oauth", "oidc", "authentication"],
+  "license": "MIT"
+}

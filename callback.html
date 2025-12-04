@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uber Auth - Callback</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Processing authentication...</h1>
+    <p class="subtitle" id="subtitle">Please wait while we complete your sign-in.</p>
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    const statusDiv = document.getElementById('status');
+    const spinner = document.getElementById('spinner');
+    const title = document.getElementById('title');
+    const subtitle = document.getElementById('subtitle');
+
+    function showError(message) {
+      spinner.style.display = 'none';
+      title.textContent = 'Authentication Failed';
+      subtitle.textContent = '';
+      statusDiv.textContent = message;
+      statusDiv.className = 'status error';
+    }
+
+    function showSuccess(message) {
+      spinner.style.display = 'none';
+      title.textContent = 'Authentication Successful!';
+      subtitle.textContent = message;
+      statusDiv.className = 'status success';
+      statusDiv.textContent = '✓ Redirecting...';
+    }
+
+    (function handleCallback() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      const error = urlParams.get('error');
+      const errorDescription = urlParams.get('error_description');
+
+      // Check for errors from Uber
+      if (error) {
+        showError(errorDescription || error);
+        sessionStorage.setItem('uber_auth_error', errorDescription || error);
+        setTimeout(() => { window.location.href = '/'; }, 3000);
+        return;
+      }
+
+      // Validate state to prevent CSRF
+      const storedState = localStorage.getItem('uber_auth_state');
+      if (state !== storedState) {
+        showError('State mismatch. Potential CSRF attack.');
+        sessionStorage.setItem('uber_auth_error', 'State mismatch');
+        setTimeout(() => { window.location.href = '/'; }, 3000);
+        return;
+      }
+
+      // Clear stored state
+      localStorage.removeItem('uber_auth_state');
+
+      if (code) {
+        // Exchange authorization code for tokens via server
+        fetch('/token-exchange', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ code })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            showError(data.error_description || data.error);
+            sessionStorage.setItem('uber_auth_error', data.error_description || data.error);
+          } else if (data.access_token) {
+            // Store tokens in sessionStorage
+            sessionStorage.setItem('uber_access_token', data.access_token);
+            if (data.token_type) sessionStorage.setItem('uber_token_type', data.token_type);
+            if (data.expires_in) sessionStorage.setItem('uber_expires_in', data.expires_in);
+            if (data.refresh_token) sessionStorage.setItem('uber_refresh_token', data.refresh_token);
+            if (data.id_token) sessionStorage.setItem('uber_id_token', data.id_token);
+
+            showSuccess('Tokens received successfully');
+          }
+
+          // Redirect back to main page
+          setTimeout(() => { window.location.href = '/'; }, 1500);
+        })
+        .catch(err => {
+          console.error('Token exchange error:', err);
+          showError('Failed to exchange code for tokens');
+          sessionStorage.setItem('uber_auth_error', 'Token exchange failed');
+          setTimeout(() => { window.location.href = '/'; }, 3000);
+        });
+      } else {
+        showError('No authorization code received');
+        setTimeout(() => { window.location.href = '/'; }, 3000);
+      }
+    })();
+  </script>
+</body>
+</html>

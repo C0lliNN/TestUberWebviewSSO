@@ -12,7 +12,7 @@ const CLIENT_ID = 'GLd7MAvJLchMHFjBl9a4Unieo13kCBi9';
 const CLIENT_SECRET = '3S4TrbvcgIsY6LwvJrAfk0Sytsyq1JKlBKvrd9lq';
 const REDIRECT_URI = 'https://c0llinn.github.io/TestUberWebviewSSO/callback';
 const TOKEN_ENDPOINT = 'sandbox-login.uber.com';  // Sandbox environment
-const API_ENDPOINT = 'sandbox-api.uber.com';  // Sandbox API
+const API_ENDPOINT = 'test-api.uber.com';  // Sandbox Riders API
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -160,6 +160,7 @@ function handleUserInfo(req, res) {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${access_token}`,
+          'Accept-Language': 'en_US',
           'Content-Type': 'application/json',
         },
       };

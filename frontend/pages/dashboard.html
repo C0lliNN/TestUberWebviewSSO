@@ -1,0 +1,65 @@
+<!--
+  =========================================================================
+   FRONTEND — Dashboard Page
+  =========================================================================
+   This HTML is served by the backend (GET /dashboard) and rendered
+   in the BROWSER — but ONLY if the user has an active server-side session.
+
+   What the frontend does here:
+     • Calls  GET /api/me  to fetch the user profile
+     • Displays the sanitized user info returned by the backend
+     • Provides a "Sign Out" button that calls  POST /auth/logout
+
+   What the frontend NEVER receives:
+     • Access tokens / refresh tokens / id tokens
+     • The user's encrypted UUID (sub)
+     • The raw Uber API response
+
+   The backend strips all sensitive fields via sanitizeUserInfo()
+   before returning the response to this page.
+  =========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uber Auth — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Loading profile...</h1>
+    <p class="subtitle" id="subtitle">Fetching your account information.</p>
+
+    <div id="status" class="status"></div>
+
+    <div id="userInfo" class="user-info"></div>
+
+    <div id="securityInfo" class="security-info" style="display:none;">
+      <h4>Session Security</h4>
+      <ul>
+        <li>Access token stored <strong>server-side only</strong></li>
+        <li>Encrypted UUID <strong>never sent to client</strong></li>
+        <li>PKCE (S256) verified during token exchange</li>
+        <li>Session via HTTP-only cookie</li>
+      </ul>
+    </div>
+
+    <button id="logoutBtn" class="logout-button" style="display:none;">
+      Sign Out
+    </button>
+
+    <div class="footer">
+      Powered by <a href="https://developer.uber.com" target="_blank">Uber Identity API</a>
+    </div>
+  </div>
+
+  <!-- Frontend JS — fetches /api/me and renders the profile -->
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

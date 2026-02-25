@@ -1,0 +1,82 @@
+<!--
+  =========================================================================
+   FRONTEND — Login Page  (uses the Uber WebSDK)
+  =========================================================================
+   This HTML is served by the backend (GET /) and rendered in the BROWSER.
+
+   What the frontend does here:
+     1. Loads the Uber WebSDK via <script src="...sdk.js">
+     2. Calls  GET /auth/start  on our backend to get PKCE params
+     3. Calls  UberAPI.auth.init(config)  with the server-provided params
+     4. Calls  UberAPI.auth.login()  to auto-redirect to Uber SSO
+     5. If there's an error (?error=…), it stays on this page and shows it
+
+   What the frontend does NOT do:
+     • Generate PKCE code_verifier  (that stays on the backend)
+     • Handle tokens               (they never reach the browser)
+     • Store anything sensitive     (no localStorage / sessionStorage)
+  =========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uber Authentication</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z" fill="black"/>
+        <path d="M12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6ZM12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16Z" fill="black"/>
+        <circle cx="12" cy="12" r="2" fill="black"/>
+      </svg>
+    </div>
+
+    <h1>Welcome</h1>
+    <p class="subtitle" id="subtitle">Initializing Uber SSO...</p>
+
+    <!-- Fallback button (in case auto-login hasn't fired yet) -->
+    <a href="#" class="auth-button" id="authWithUber" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 11.4082V17.3673C1 18.8163 2.18367 20 3.63265 20H8.12245V14.3061C8.12245 13.8571 8.48981 13.4898 8.93878 13.4898H15.0612C15.5102 13.4898 15.8776 13.8571 15.8776 14.3061V20H20.3673C21.8163 20 23 18.8163 23 17.3673V11.4082L12 4L1 11.4082Z"/>
+      </svg>
+      <span class="button-text">Sign in with Uber</span>
+    </a>
+
+    <div class="spinner" id="spinner"></div>
+
+    <div id="status" class="status"></div>
+
+    <div class="security-note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <span>Secured with OAuth2 + PKCE. Tokens never leave the server.</span>
+    </div>
+
+    <div class="footer">
+      Powered by <a href="https://developer.uber.com" target="_blank">Uber Identity API</a>
+    </div>
+  </div>
+
+  <!--
+    ═══════════════════════════════════════════════════════════════════════
+     UBER WebSDK — loaded from Uber's CDN.
+     This gives us the  UberAPI.auth.init()  and  UberAPI.auth.login()
+     methods used in login.js below.
+    ═══════════════════════════════════════════════════════════════════════
+  -->
+  <script src=”https://auth.uber.com/oauth/static/auth-v_1_2_0.js”  />
+
+
+  <!-- Frontend JS — calls /auth/start, inits SDK, triggers login -->
+  <script src="/js/login.js"></script>
+</body>
+</html>

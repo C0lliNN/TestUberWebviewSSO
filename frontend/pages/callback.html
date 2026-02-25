@@ -1,0 +1,46 @@
+<!--
+  =========================================================================
+   FRONTEND — OAuth Callback Page
+  =========================================================================
+   After the user signs in at Uber, the browser is redirected here with:
+     ?code=AUTHORIZATION_CODE&state=STATE_VALUE
+
+   What the frontend does here:
+     1. Extracts  code  and  state  from the URL
+     2. Sends them to  POST /auth/token-exchange  on our BACKEND
+     3. The backend exchanges the code for tokens (server-to-server)
+     4. The backend returns only a sanitized user profile (no tokens)
+     5. This page redirects to /dashboard
+
+   What the frontend NEVER receives:
+     • Access tokens / refresh tokens / id tokens
+     • The PKCE code_verifier  (it was stored server-side by /auth/start)
+     • The user's encrypted UUID
+  =========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uber Auth — Completing Sign-In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Completing sign-in...</h1>
+    <p class="subtitle" id="subtitle">Exchanging authorization code with the server.</p>
+    <div id="status" class="status"></div>
+
+    <div class="footer">
+      Powered by <a href="https://developer.uber.com" target="_blank">Uber Identity API</a>
+    </div>
+  </div>
+
+  <script src="/js/callback.js"></script>
+</body>
+</html>

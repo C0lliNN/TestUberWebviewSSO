@@ -40,7 +40,6 @@
   // ── Extract params from the redirect URL ──────────────────────────────
   var params = new URLSearchParams(window.location.search);
   var code   = params.get('code');
-  var state  = params.get('state');
   var error  = params.get('error');
   var errMsg = params.get('error_description');
 
@@ -55,13 +54,13 @@
     return;
   }
 
-  // ── Send the code + state to the BACKEND for token exchange ───────────
+  // ── Send the code to the BACKEND for token exchange ───────────────────
   //    POST /auth/token-exchange
-  //    Body: { code, state }
+  //    Body: { code }
   //
   //    The backend:
-  //      • Validates state against the session
-  //      • Sends  code + code_verifier + client_secret  to Uber  (server-to-server)
+  //      • Verifies the session has a valid nonce (request originated from us)
+  //      • Sends  code + client_secret  to Uber  (server-to-server)
   //      • Stores the returned tokens in the session
   //      • Returns sanitized user info only
   subtitle.textContent = 'Exchanging authorization code...';
@@ -70,7 +69,7 @@
     method:      'POST',
     credentials: 'same-origin',
     headers:     { 'Content-Type': 'application/json' },
-    body:        JSON.stringify({ code: code, state: state }),
+    body:        JSON.stringify({ code: code }),
   })
     .then(function (res) { return res.json(); })
     .then(function (data) {

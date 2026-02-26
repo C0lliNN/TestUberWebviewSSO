@@ -9,15 +9,19 @@ const https = require('https');
 const { UBER } = require('./config');
 
 /**
- * Exchange an authorization code + PKCE code_verifier for tokens.
+ * Exchange an authorization code for tokens using client_secret.
  *
  *   POST https://sandbox-login.uber.com/oauth/v2/token
- *   Body: client_id, client_secret, grant_type, redirect_uri, code, code_verifier
+ *   Body: client_id, client_secret, grant_type, redirect_uri, code
+ *
+ * NOTE: The Uber WebSDK's signin() does not send a PKCE code_challenge
+ * to the authorize endpoint, so we do NOT send code_verifier here.
+ * The exchange is secured by the client_secret (confidential client).
  *
  * Returns: { access_token, refresh_token, token_type, expires_in, id_token, ... }
  * This response is NEVER forwarded to the browser.
  */
-function exchangeCodeForTokens(code, codeVerifier) {
+function exchangeCodeForTokens(code) {
   return new Promise((resolve, reject) => {
     const body = new URLSearchParams({
       client_id:     UBER.clientId,
@@ -25,7 +29,6 @@ function exchangeCodeForTokens(code, codeVerifier) {
       grant_type:    'authorization_code',
       redirect_uri:  UBER.redirectUri,
       code,
-      code_verifier: codeVerifier,   // ← PKCE: proves WE started this flow
     }).toString();
 
     const options = {

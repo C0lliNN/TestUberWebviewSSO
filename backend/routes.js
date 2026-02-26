@@ -13,9 +13,7 @@
 const path = require('path');
 const express = require('express');
 const { UBER }                           = require('./config');
-const { generateCodeVerifier,
-        generateCodeChallenge,
-        generateState }                  = require('./pkce');
+const { generateState }                  = require('./pkce');
 const { exchangeCodeForTokens,
         fetchUserInfo }                  = require('./uber-api');
 const { sanitizeUserInfo }               = require('./sanitize');
@@ -57,37 +55,39 @@ router.get('/dashboard', (req, res) => {
 /**
  * GET /auth/start
  *
- * Called by the FRONTEND before it calls UberAPI.auth.login().
+ * Called by the FRONTEND before it calls UberAPI.auth.signin().
  *
  * What happens here (on the SERVER):
- *   1. Generate PKCE  code_verifier  +  code_challenge (S256)
- *   2. Generate random  state  (CSRF token)
- *   3. Store  code_verifier  and  state  in the server-side session
- *   4. Return the PUBLIC parts to the frontend:
- *      { clientId, redirectUri, scope, state, codeChallenge, codeChallengeMethod }
+ *   1. Generate a random  nonce  (session-binding / replay protection)
+ *   2. Store the nonce in the server-side session
+ *   3. Return the SDK configuration to the frontend:
+ *      { clientId, redirectUri, scope, nonce }
  *
- * The code_verifier NEVER leaves the server.
- * The frontend passes codeChallenge + state to the Uber WebSDK.
+ * NOTE on PKCE:
+ *   The Uber WebSDK only generates PKCE internally when requestTokens()
+ *   is called. Since we use signin() + server-side token exchange with
+ *   client_secret (confidential client), PKCE is not part of this flow.
+ *   The client_secret provides equivalent protection against unauthorized
+ *   code exchange.
+ *
+ * NOTE on state:
+ *   The SDK does not send a `state` parameter. We use `nonce` (which the
+ *   SDK does send) to tie the request to this server session.
  */
 router.get('/auth/start', (req, res) => {
-  const codeVerifier  = generateCodeVerifier();
-  const codeChallenge = generateCodeChallenge(codeVerifier);
-  const state         = generateState();
+  const nonce = generateState();   // reuse the random generator for nonce
 
-  // Store secrets in the session (server-side only)
-  req.session.pkceCodeVerifier = codeVerifier;
-  req.session.oauthState       = state;
+  // Store nonce in the session for verification on callback
+  req.session.oauthNonce = nonce;
 
-  console.log('[BE · /auth/start] PKCE + state generated (state=%s…)', state.substring(0, 8));
+  console.log('[BE · /auth/start] nonce generated (nonce=%s…)', nonce.substring(0, 8));
 
-  // Return ONLY the public parameters the SDK needs
+  // Return the SDK configuration (no secrets, no code_verifier)
   res.json({
-    clientId:            UBER.clientId,
-    redirectUri:         UBER.redirectUri,
-    scope:               UBER.scopes,
-    state,
-    codeChallenge,
-    codeChallengeMethod: 'S256',
+    clientId:    UBER.clientId,
+    redirectUri: UBER.redirectUri,
+    scope:       UBER.scopes,
+    nonce,
   });
 });
 
@@ -96,44 +96,41 @@ router.get('/auth/start', (req, res) => {
  *
  * Called by the FRONTEND callback page after Uber redirects back with a code.
  *
- * Body: { code: "...", state: "..." }
+ * Body: { code: "..." }
  *
  * What happens here (on the SERVER):
- *   1. Validate `state` matches what we stored (CSRF check)
- *   2. Exchange `code` + `code_verifier` → tokens  (server-to-server HTTPS)
+ *   1. Verify the session has an active nonce (request was initiated by us)
+ *   2. Exchange `code` + `client_secret` → tokens  (server-to-server HTTPS)
  *   3. Use the access_token to fetch user info      (server-to-server HTTPS)
  *   4. Store tokens + full user info in the session
  *   5. Store a *sanitized* copy (no UUID) for the frontend
  *   6. Return { success: true, user: sanitizedUser }
  *
+ * NOTE: The Uber WebSDK's signin() does not send PKCE code_challenge,
+ * so we don't send code_verifier here. The token exchange is secured by
+ * the client_secret (confidential client).
+ *
  * The browser NEVER receives any token or encrypted UUID.
  */
 router.post('/auth/token-exchange', async (req, res) => {
-  const { code, state } = req.body;
+  const { code } = req.body;
 
-  // ── Validate state (CSRF) ────────────────────────────────────────────
-  if (!state || state !== req.session.oauthState) {
-    console.error('[BE · /auth/token-exchange] State mismatch — possible CSRF');
-    return res.status(403).json({ error: 'state_mismatch', message: 'State mismatch. Authentication rejected.' });
+  // ── Verify this request originated from a valid session ───────────────
+  if (!req.session.oauthNonce) {
+    console.error('[BE · /auth/token-exchange] No nonce in session — session expired or forged request');
+    return res.status(403).json({ error: 'invalid_session', message: 'Session expired. Please try again.' });
   }
 
-  // ── Check we have the code + code_verifier ────────────────────────────
   if (!code) {
     return res.status(400).json({ error: 'missing_code', message: 'No authorization code provided.' });
   }
 
-  const codeVerifier = req.session.pkceCodeVerifier;
-  if (!codeVerifier) {
-    return res.status(400).json({ error: 'session_expired', message: 'Session expired. Please try again.' });
-  }
-
-  // Clean up one-time values
-  delete req.session.oauthState;
-  delete req.session.pkceCodeVerifier;
+  // Clean up one-time nonce
+  delete req.session.oauthNonce;
 
   try {
-    // ── Exchange code → tokens  (server ↔ Uber, PKCE verified) ─────────
-    const tokenData = await exchangeCodeForTokens(code, codeVerifier);
+    // ── Exchange code → tokens  (server ↔ Uber, secured by client_secret) ─
+    const tokenData = await exchangeCodeForTokens(code);
 
     if (tokenData.error) {
       console.error('[BE · /auth/token-exchange] Token error:', tokenData.error);

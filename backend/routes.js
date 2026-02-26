@@ -4,7 +4,7 @@
 //  Every route in this file runs on the SERVER.
 //  The browser only ever receives:
 //    • HTML pages  (login, callback, dashboard)
-//    • JSON from   GET  /auth/start   (PKCE challenge + state — no secrets)
+//    • JSON from   GET  /auth/start   (SDK config + nonce — no secrets)
 //    • JSON from   POST /auth/token-exchange   (sanitized user — no tokens)
 //    • JSON from   GET  /api/me   (sanitized user — no tokens)
 //    • An HTTP-only session cookie (opaque ID — no tokens inside)
@@ -49,7 +49,7 @@ router.get('/dashboard', (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-//  OAuth2 / OIDC + PKCE  routes
+//  OAuth2 / OIDC  routes
 // ─────────────────────────────────────────────
 
 /**

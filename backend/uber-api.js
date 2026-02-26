@@ -11,7 +11,7 @@ const { UBER } = require('./config');
 /**
  * Exchange an authorization code for tokens using client_secret.
  *
- *   POST https://sandbox-login.uber.com/oauth/v2/token
+ *   POST https://auth.uber.com/oauth/v2/token
  *   Body: client_id, client_secret, grant_type, redirect_uri, code
  *
  * NOTE: The Uber WebSDK's signin() does not send a PKCE code_challenge

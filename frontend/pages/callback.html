@@ -3,18 +3,19 @@
    FRONTEND — OAuth Callback Page
   =========================================================================
    After the user signs in at Uber, the browser is redirected here with:
-     ?code=AUTHORIZATION_CODE&state=STATE_VALUE
+     ?code=AUTHORIZATION_CODE
 
    What the frontend does here:
-     1. Extracts  code  and  state  from the URL
-     2. Sends them to  POST /auth/token-exchange  on our BACKEND
-     3. The backend exchanges the code for tokens (server-to-server)
+     1. Extracts  code  from the URL
+     2. Sends it to  POST /auth/token-exchange  on our BACKEND
+     3. The backend exchanges the code for tokens using client_secret
+        (server-to-server)
      4. The backend returns only a sanitized user profile (no tokens)
      5. This page redirects to /dashboard
 
    What the frontend NEVER receives:
      • Access tokens / refresh tokens / id tokens
-     • The PKCE code_verifier  (it was stored server-side by /auth/start)
+     • The client_secret (lives only on the server)
      • The user's encrypted UUID
   =========================================================================
 -->

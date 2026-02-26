@@ -2,19 +2,19 @@
 //  FRONTEND — Callback Script  (runs in the BROWSER)
 // =========================================================================
 //  Uber redirects the browser here after the user signs in:
-//    /callback?code=AUTH_CODE&state=STATE
+//    /callback?code=AUTHORIZATION_CODE
 //
 //  This script:
-//    1. Extracts  code  and  state  from the URL query params
-//    2. Sends them to our BACKEND  →  POST /auth/token-exchange
-//    3. The backend uses the server-stored code_verifier to exchange
-//       the authorization code for tokens (server-to-server with Uber)
+//    1. Extracts  code  from the URL query params
+//    2. Sends it to our BACKEND  →  POST /auth/token-exchange
+//    3. The backend exchanges the code for tokens using client_secret
+//       (server-to-server with Uber)
 //    4. The backend returns { success: true, user: { sanitized } }
 //    5. This script redirects the browser to /dashboard
 //
 //  IMPORTANT — This script NEVER sees:
 //    • Access tokens, refresh tokens, or id tokens
-//    • The PKCE code_verifier (it was generated + stored on the server)
+//    • The client_secret (lives only on the server)
 //    • The user's encrypted UUID (sub)
 //
 //  The only sensitive value in the URL is the authorization code,

@@ -5,7 +5,7 @@
 //    1. Calls  GET /auth/start  on our BACKEND to get PKCE + state params
 //       (the code_verifier stays on the server — only code_challenge comes here)
 //    2. Calls  UberAPI.auth.init(config)  with those params
-//    3. Calls  UberAPI.auth.login()  to redirect to Uber SSO
+//    3. Calls  UberAPI.auth.signIn()  to redirect to Uber SSO
 //
 //  If there's an ?error= in the URL, it shows the error and stops.
 //
@@ -49,7 +49,7 @@
    * Start the login flow:
    *   1. Fetch PKCE params from our backend  (GET /auth/start)
    *   2. Initialize the Uber WebSDK          (UberAPI.auth.init)
-   *   3. Trigger the SSO redirect            (UberAPI.auth.login)
+   *   3. Trigger the SSO redirect            (UberAPI.auth.signIn)
    */
   function startLogin() {
     subtitle.textContent  = 'Initializing Uber SSO...';
@@ -82,13 +82,31 @@
 
         console.log('[FE · login] UberAPI.auth.init() called');
 
-        // STEP 3 — Trigger the login redirect
-        //          This navigates the browser to Uber's authorization page.
-        //          After the user signs in, Uber redirects to our redirectUri
-        //          (the callback page) with ?code=…&state=…
-        UberAPI.auth.login();
+        // STEP 3 — Trigger the sign-in redirect
+        //          UberAPI.auth.signIn() navigates the browser to Uber's
+        //          authorization page. After the user signs in, Uber redirects
+        //          to our redirectUri (the callback page) with ?code=…&state=…
+        //
+        //          Note: UberAPI.auth.requestTokens() is for the token step,
+        //          but we handle that on the BACKEND for security.
+        UberAPI.auth.signIn().then(function (response, error) {
+          if (error) {
+            console.error('[FE · login] UberAPI.auth.signIn() error:', error);
+            spinner.style.display = 'none';
+            subtitle.textContent  = 'Uber sign-in failed.';
+            statusDiv.textContent = error.message || 'Sign-in was cancelled or failed.';
+            statusDiv.className   = 'status error';
+            authBtn.style.display = 'flex';
+            return;
+          }
 
-        console.log('[FE · login] UberAPI.auth.login() called — redirecting…');
+          console.log('[FE · login] UberAPI.auth.signIn() response:', response);
+          // The SDK handles the redirect to Uber's authorization page.
+          // After the user signs in, Uber redirects to our redirectUri
+          // (the callback page) with ?code=…&state=…
+        });
+
+        console.log('[FE · login] UberAPI.auth.signIn() called — redirecting…');
       })
       .catch(function (err) {
         console.error('[FE · login] Failed to start login:', err);

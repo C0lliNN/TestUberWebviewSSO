@@ -62,18 +62,19 @@ function exchangeCodeForTokens(code) {
 }
 
 /**
- * Fetch user info from Uber's OIDC UserInfo endpoint.
+ * Fetch user profile from Uber's Consumer Identity API.
  *
- *   GET https://sandbox-login.uber.com/oauth/v2/userinfo
+ *   GET https://api.uber.com/v3/me
  *   Header: Authorization: Bearer <access_token>
  *
- * Returns: { sub, name, email, picture, ... }
- * The `sub` field contains the encrypted user UUID — it MUST stay on the server.
+ * Docs: https://developer.uber.com/docs/consumer-identity/references/api/v3/me-get
+ *
+ * The response contains the encrypted user UUID — it MUST stay on the server.
  */
 function fetchUserInfo(accessToken) {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: UBER.authHost,
+      hostname: UBER.apiHost,
       path:     UBER.userInfoPath,
       method:   'GET',
       headers: {
@@ -82,16 +83,23 @@ function fetchUserInfo(accessToken) {
       },
     };
 
-    console.log('[BE · userinfo] GET', `${UBER.authHost}${UBER.userInfoPath}`);
+    console.log('[BE · userinfo] GET', `https://${UBER.apiHost}${UBER.userInfoPath}`);
 
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
+        console.log('[BE · userinfo] HTTP %d — %d bytes', res.statusCode, data.length);
+
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error('Userinfo HTTP ' + res.statusCode + ': ' + data.substring(0, 200)));
+          return;
+        }
+
         try {
           resolve(JSON.parse(data));
         } catch (e) {
-          reject(new Error('Failed to parse userinfo response: ' + data));
+          reject(new Error('Failed to parse userinfo response: ' + data.substring(0, 200)));
         }
       });
     });

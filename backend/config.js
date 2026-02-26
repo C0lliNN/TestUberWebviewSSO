@@ -28,7 +28,9 @@ const UBER = {
   authHost:      process.env.UBER_AUTH_HOST || 'auth.uber.com',
   authorizePath: '/oauth/v2/authorize',
   tokenPath:     '/oauth/v2/token',
-  userInfoPath:  '/oauth/v2/userinfo',
+  // User profile — see https://developer.uber.com/docs/consumer-identity/references/api/v3/me-get
+  apiHost:       process.env.UBER_API_HOST || 'api.uber.com',
+  userInfoPath:  '/v3/me',
 };
 
 // ── Validate required env vars at startup ────────────────────────────────

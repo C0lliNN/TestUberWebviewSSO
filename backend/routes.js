@@ -147,8 +147,15 @@ router.post('/auth/token-exchange', async (req, res) => {
     req.session.idToken      = tokenData.id_token || null;
 
     // ── Fetch user info  (server ↔ Uber) ───────────────────────────────
-    const rawUserInfo = await fetchUserInfo(tokenData.access_token);
-    console.log('[BE · /auth/token-exchange] User info fetched');
+    //    This is a best-effort call. If it fails, the user is still
+    //    authenticated (we have valid tokens). We just won't have profile data.
+    let rawUserInfo = {};
+    try {
+      rawUserInfo = await fetchUserInfo(tokenData.access_token);
+      console.log('[BE · /auth/token-exchange] User info fetched');
+    } catch (userInfoErr) {
+      console.warn('[BE · /auth/token-exchange] User info fetch failed (non-fatal):', userInfoErr.message);
+    }
 
     // Full copy stays on the server (contains encrypted UUID)
     req.session.userInfoFull = rawUserInfo;

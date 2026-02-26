@@ -80,7 +80,7 @@ router.get('/auth/start', (req, res) => {
   // Store nonce in the session for verification on callback
   req.session.oauthNonce = nonce;
 
-  console.log('[BE · /auth/start] nonce generated (nonce=%s…)', nonce.substring(0, 8));
+  console.log('[BE · /auth/start] nonce=%s… redirectUri=%s', nonce.substring(0, 8), UBER.redirectUri);
 
   // Return the SDK configuration (no secrets, no code_verifier)
   res.json({

@@ -23,8 +23,9 @@ const UBER = {
   redirectUri:  process.env.UBER_REDIRECT_URI  || (BASE_URL ? `${BASE_URL}/callback` : ''),
   scopes:       'profile',
 
-  // Uber OIDC endpoints  (swap "sandbox-" prefix for production)
-  authHost:      process.env.UBER_AUTH_HOST || 'sandbox-login.uber.com',
+  // Uber OIDC endpoints
+  // The WebSDK hardcodes auth.uber.com — the backend must match.
+  authHost:      process.env.UBER_AUTH_HOST || 'auth.uber.com',
   authorizePath: '/oauth/v2/authorize',
   tokenPath:     '/oauth/v2/token',
   userInfoPath:  '/oauth/v2/userinfo',

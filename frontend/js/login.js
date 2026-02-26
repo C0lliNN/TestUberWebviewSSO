@@ -95,7 +95,7 @@
           nonce:        authConfig.nonce,           // Ties to server session
         });
 
-        console.log('[FE · login] UberAPI.auth.init() called');
+        console.log('[FE · login] UberAPI.auth.init() called with redirectURI:', authConfig.redirectUri);
 
         // STEP 3 — Trigger the sign-in redirect
         //

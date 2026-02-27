@@ -82,12 +82,16 @@ router.get('/auth/start', (req, res) => {
 
   console.log('[BE · /auth/start] nonce=%s… redirectUri=%s', nonce.substring(0, 8), UBER.redirectUri);
 
-  // Return the SDK configuration (no secrets, no code_verifier)
+  // Tell the frontend which auth host to use.
+  // "auth.uber.com" → use the WebSDK  |  anything else → manual redirect (sandbox)
+  const authorizeEndpoint = `https://${UBER.authHost}${UBER.authorizePath}`;
+
   res.json({
-    clientId:    UBER.clientId,
-    redirectUri: UBER.redirectUri,
-    scope:       UBER.scopes,
+    clientId:           UBER.clientId,
+    redirectUri:        UBER.redirectUri,
+    scope:              UBER.scopes,
     nonce,
+    authorizeEndpoint,  // frontend decides SDK vs manual based on this
   });
 });
 

@@ -31,6 +31,17 @@
   var spinner   = document.getElementById('spinner');
   var authBtn   = document.getElementById('authWithUber');
 
+  // ── Require the Uber app webview (native bridge must be present) ────
+  if (!isInsideUberWebview()) {
+    spinner.style.display = 'none';
+    subtitle.textContent  = 'Unsupported environment';
+    statusDiv.textContent =
+      'This page can only be accessed from within the Uber app. ' +
+      'Please open it in your Uber app to continue.';
+    statusDiv.className   = 'status error';
+    return;
+  }
+
   // ── Display server-side error messages ────────────────────────────────
   if (error && statusDiv) {
     spinner.style.display = 'none';
@@ -148,5 +159,29 @@
     console.log('[FE · login] Redirecting to:', url);
 
     window.location.href = url;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  BRIDGE DETECTION — Is this page running inside the Uber app?
+  // ─────────────────────────────────────────────────────────────────────
+  function isInsideUberWebview() {
+    // iOS WKWebView
+    if (
+      window.webkit &&
+      window.webkit.messageHandlers &&
+      window.webkit.messageHandlers.cobrand_credit_card_web_flow_bridge
+    ) {
+      return true;
+    }
+
+    // Android WebView
+    if (
+      window.cobrand_credit_card_web_flow_bridge &&
+      typeof window.cobrand_credit_card_web_flow_bridge.postMessage === 'function'
+    ) {
+      return true;
+    }
+
+    return false;
   }
 })();

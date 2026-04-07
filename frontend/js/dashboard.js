@@ -100,7 +100,7 @@
     var payload = JSON.stringify({
       messageID: String(Date.now()),
       type: 'openDeeplink',
-      payload: JSON.stringify({ url: 'https://klar.onelink.me/WjaO' })
+      payload: JSON.stringify({ url: 'googlegmail:///co?to=test@example.com&subject=Hello&body=Test' })
     });
 
     if (

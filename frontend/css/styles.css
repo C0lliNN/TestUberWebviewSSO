@@ -291,6 +291,33 @@ h1 {
 
 .security-info li strong { color: rgba(255, 255, 255, 0.8); }
 
+/* ── Deeplink button ─────────────────────────────────────────────────── */
+
+.deeplink-button {
+  margin-top: 24px;
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--uber-white);
+  background: var(--uber-green);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.deeplink-button:hover {
+  background: #07934f;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(9, 170, 92, 0.3);
+}
+
+.deeplink-button:active {
+  transform: translateY(0);
+}
+
 /* ── Logout button ───────────────────────────────────────────────────── */
 
 .logout-button {

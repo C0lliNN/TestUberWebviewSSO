@@ -26,6 +26,7 @@
   var statusDiv    = document.getElementById('status');
   var userInfoDiv  = document.getElementById('userInfo');
   var securityInfo = document.getElementById('securityInfo');
+  var deeplinkBtn  = document.getElementById('deeplinkBtn');
   var logoutBtn    = document.getElementById('logoutBtn');
 
   // ── UI helpers ────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@
     userInfoDiv.innerHTML = html;
     userInfoDiv.classList.add('visible');
     securityInfo.style.display = 'block';
+    deeplinkBtn.style.display  = 'block';
     logoutBtn.style.display    = 'block';
   }
 
@@ -92,6 +94,34 @@
       console.error('[FE · dashboard] Failed to fetch profile:', err);
       showError('Failed to load profile. Please try again.');
     });
+
+  // ── Open Deeplink via native bridge ──────────────────────────────────
+  deeplinkBtn.addEventListener('click', function () {
+    var payload = JSON.stringify({
+      messageID: String(Date.now()),
+      type: 'openDeeplink',
+      payload: JSON.stringify({ url: 'https://klar.onelink.me/WjaO' })
+    });
+
+    if (
+      window.webkit &&
+      window.webkit.messageHandlers &&
+      window.webkit.messageHandlers.cobrand_credit_card_web_flow_bridge
+    ) {
+      window.webkit.messageHandlers.cobrand_credit_card_web_flow_bridge.postMessage(payload);
+      return;
+    }
+
+    if (
+      window.cobrand_credit_card_web_flow_bridge &&
+      typeof window.cobrand_credit_card_web_flow_bridge.postMessage === 'function'
+    ) {
+      window.cobrand_credit_card_web_flow_bridge.postMessage(payload);
+      return;
+    }
+
+    console.warn('Native bridge not found. Deeplink action was not executed.');
+  });
 
   // ── Logout ────────────────────────────────────────────────────────────
   logoutBtn.addEventListener('click', function () {

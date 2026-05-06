@@ -32,15 +32,16 @@
   var authBtn   = document.getElementById('authWithUber');
 
   // ── Require the Uber app webview (native bridge must be present) ────
-  if (!isInsideUberWebview()) {
-    spinner.style.display = 'none';
-    subtitle.textContent  = 'Unsupported environment';
-    statusDiv.textContent =
-      'This page can only be accessed from within the Uber app. ' +
-      'Please open it in your Uber app to continue.';
-    statusDiv.className   = 'status error';
-    return;
-  }
+  // TEMPORARILY DISABLED for desktop browser testing. Restore before deploying.
+  // if (!isInsideUberWebview()) {
+  //   spinner.style.display = 'none';
+  //   subtitle.textContent  = 'Unsupported environment';
+  //   statusDiv.textContent =
+  //     'This page can only be accessed from within the Uber app. ' +
+  //     'Please open it in your Uber app to continue.';
+  //   statusDiv.className   = 'status error';
+  //   return;
+  // }
 
   // ── Display server-side error messages ────────────────────────────────
   if (error && statusDiv) {

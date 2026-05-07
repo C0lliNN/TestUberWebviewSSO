@@ -15,7 +15,8 @@ const express = require('express');
 const { UBER }                           = require('./config');
 const { generateState }                  = require('./pkce');
 const { exchangeCodeForTokens,
-        fetchUserInfo }                  = require('./uber-api');
+        fetchUserInfo,
+        getPreApprovalStatus }           = require('./uber-api');
 const { sanitizeUserInfo }               = require('./sanitize');
 
 const router = express.Router();
@@ -215,6 +216,48 @@ router.get('/api/session', (req, res) => {
     authenticated: !!req.session.isAuthenticated,
     expiresAt:     req.session.expiresAt || null,
   });
+});
+
+/**
+ * POST /api/pre-approval-status
+ *
+ * Calls Uber's FinProd Issuance pre-approval-status endpoint:
+ *   POST https://api.uber.com/v1/banking/issuance/pre-approval-status
+ *
+ * Body: { programType?: "MX_COBRAND_CC" }
+ *
+ * The encrypted user UUID is taken from the server-side session
+ * (set during /auth/token-exchange from /v3/me) and is never accepted
+ * from the client.
+ *
+ * Requires:
+ *   • An authenticated session (uses req.session.accessToken).
+ *   • The access token must include the `banking.events.issuance` scope.
+ *   • UBER_API_APPLICATION_ID env var (sent as x-api-application-id).
+ */
+router.post('/api/pre-approval-status', async (req, res) => {
+  if (!req.session.isAuthenticated) {
+    return res.status(401).json({ error: 'not_authenticated', message: 'Please log in first.' });
+  }
+
+  if (req.session.expiresAt && Date.now() > req.session.expiresAt) {
+    return res.status(401).json({ error: 'token_expired', message: 'Session expired. Please log in again.' });
+  }
+
+  const uberUserUUID = req.session.userInfoFull && req.session.userInfoFull.sub;
+  if (!uberUserUUID) {
+    return res.status(500).json({ error: 'missing_user_uuid', message: 'No user UUID in session.' });
+  }
+
+  const { programType } = req.body || {};
+
+  try {
+    const result = await getPreApprovalStatus(req.session.accessToken, uberUserUUID, programType);
+    res.json(result);
+  } catch (err) {
+    console.error('[BE · /api/pre-approval-status] Exception:', err.message);
+    res.status(502).json({ error: 'preapproval_failed', message: err.message });
+  }
 });
 
 // ─────────────────────────────────────────────

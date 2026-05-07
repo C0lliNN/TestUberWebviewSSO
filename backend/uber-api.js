@@ -109,4 +109,64 @@ function fetchUserInfo(accessToken) {
   });
 }
 
-module.exports = { exchangeCodeForTokens, fetchUserInfo };
+/**
+ * Fetch the user's co-brand credit card pre-approval status.
+ *
+ *   POST https://api.uber.com/v1/banking/issuance/pre-approval-status
+ *   Header: Authorization: Bearer <access_token>
+ *   Header: x-api-application-id: <UBER_API_APPLICATION_ID>
+ *   Body: { uberUserUUID: <encrypted>, programType: "MX_COBRAND_CC" }
+ *
+ * Requires the `banking.events.issuance` OAuth scope on the access token.
+ *
+ * NOTE: `uberUserUUID` must be the encrypted form — the API decrypts it
+ * server-side. Sending a raw UUID will fail.
+ */
+function getPreApprovalStatus(accessToken, encryptedUuid, programType) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      uberUserUUID: encryptedUuid,
+      programType:  programType || 'MX_COBRAND_CC',
+    });
+
+    const options = {
+      hostname: UBER.apiHost,
+      path:     UBER.preApprovalStatusPath,
+      method:   'POST',
+      headers: {
+        'Authorization':       `Bearer ${accessToken}`,
+        'x-api-application-id': UBER.apiApplicationId,
+        'Content-Type':         'application/json',
+        'Content-Length':       Buffer.byteLength(body),
+        'Accept':               'application/json',
+      },
+    };
+
+    console.log('[BE · pre-approval-status] POST', `https://${UBER.apiHost}${UBER.preApprovalStatusPath}`);
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        console.log('[BE · pre-approval-status] HTTP %d — %d bytes', res.statusCode, data.length);
+
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error('PreApprovalStatus HTTP ' + res.statusCode + ': ' + data.substring(0, 500)));
+          return;
+        }
+
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(new Error('Failed to parse pre-approval-status response: ' + data.substring(0, 200)));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+module.exports = { exchangeCodeForTokens, fetchUserInfo, getPreApprovalStatus };

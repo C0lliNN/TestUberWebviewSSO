@@ -20,14 +20,17 @@
   'use strict';
 
   // ── DOM references ────────────────────────────────────────────────────
-  var spinner      = document.getElementById('spinner');
-  var title        = document.getElementById('title');
-  var subtitle     = document.getElementById('subtitle');
-  var statusDiv    = document.getElementById('status');
-  var userInfoDiv  = document.getElementById('userInfo');
-  var securityInfo = document.getElementById('securityInfo');
-  var deeplinkBtn  = document.getElementById('deeplinkBtn');
-  var logoutBtn    = document.getElementById('logoutBtn');
+  var spinner          = document.getElementById('spinner');
+  var title            = document.getElementById('title');
+  var subtitle         = document.getElementById('subtitle');
+  var statusDiv        = document.getElementById('status');
+  var userInfoDiv      = document.getElementById('userInfo');
+  var preApprovalDiv   = document.getElementById('preApprovalInfo');
+  var preApprovedValue = document.getElementById('preApprovedValue');
+  var preApprovalIdEl  = document.getElementById('preApprovalIdValue');
+  var securityInfo     = document.getElementById('securityInfo');
+  var deeplinkBtn      = document.getElementById('deeplinkBtn');
+  var logoutBtn        = document.getElementById('logoutBtn');
 
   // ── UI helpers ────────────────────────────────────────────────────────
   function showError(message) {
@@ -71,6 +74,45 @@
     logoutBtn.style.display    = 'block';
   }
 
+  // ── Pre-approval status ───────────────────────────────────────────────
+  //   The encrypted UUID lives server-side in the session; the backend
+  //   reads it from /v3/me's `sub` claim. Nothing UUID-related is sent
+  //   from the browser.
+  function renderPreApproval(result) {
+    preApprovedValue.textContent = (result && typeof result.preApproved === 'boolean')
+      ? String(result.preApproved)
+      : '—';
+    preApprovalIdEl.textContent  = (result && result.preApprovalID) ? result.preApprovalID : '—';
+    preApprovalDiv.style.display = 'block';
+  }
+
+  function renderPreApprovalError(message) {
+    preApprovedValue.textContent = 'error';
+    preApprovalIdEl.textContent  = message || 'failed to fetch';
+    preApprovalDiv.style.display = 'block';
+  }
+
+  function fetchPreApprovalStatus() {
+    fetch('/api/pre-approval-status', {
+      method:      'POST',
+      credentials: 'same-origin',
+      headers:     { 'Content-Type': 'application/json' },
+      body:        JSON.stringify({ programType: 'MX_COBRAND_CC' }),
+    })
+      .then(function (res) { return res.json().then(function (body) { return { status: res.status, body: body }; }); })
+      .then(function (r) {
+        if (r.status >= 200 && r.status < 300) {
+          renderPreApproval(r.body);
+        } else {
+          renderPreApprovalError((r.body && (r.body.message || r.body.error)) || ('HTTP ' + r.status));
+        }
+      })
+      .catch(function (err) {
+        console.error('[FE · dashboard] pre-approval-status failed:', err);
+        renderPreApprovalError(err.message);
+      });
+  }
+
   // ── Fetch the user profile from the BACKEND ───────────────────────────
   //    The backend reads the access token from the session (server-side),
   //    and returns only the sanitized fields. No token is sent over the wire.
@@ -89,6 +131,7 @@
         return;
       }
       showProfile(data.user);
+      fetchPreApprovalStatus();
     })
     .catch(function (err) {
       console.error('[FE · dashboard] Failed to fetch profile:', err);

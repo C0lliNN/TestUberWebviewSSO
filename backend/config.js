@@ -21,7 +21,7 @@ const UBER = {
   clientId:     process.env.UBER_CLIENT_ID     || '',
   clientSecret: process.env.UBER_CLIENT_SECRET || '',
   redirectUri:  process.env.UBER_REDIRECT_URI  || (BASE_URL ? `${BASE_URL}/callback` : ''),
-  scopes:       'profile',
+  scopes:       'profile banking.events.issuance',
 
   // Uber OIDC endpoints
   // The WebSDK hardcodes auth.uber.com — the backend must match.
@@ -31,6 +31,11 @@ const UBER = {
   // User profile — see https://developer.uber.com/docs/consumer-identity/references/api/v3/me-get
   apiHost:       process.env.UBER_API_HOST || 'api.uber.com',
   userInfoPath:  '/v3/me',
+  // FinProd Issuance — pre-approval status
+  preApprovalStatusPath: '/v1/banking/issuance/pre-approval-status',
+  // Sent as the x-api-application-id header. Required by the
+  // pre-approval-status endpoint.
+  apiApplicationId: process.env.UBER_API_APPLICATION_ID || '',
 };
 
 // ── Validate required env vars at startup ────────────────────────────────

@@ -233,7 +233,7 @@ router.get('/api/session', (req, res) => {
  * Requires:
  *   • An authenticated session (uses req.session.accessToken).
  *   • The access token must include the `banking.events.issuance` scope.
- *   • UBER_API_APPLICATION_ID env var (sent as x-api-application-id).
+ *   • UBER_CLIENT_ID env var (sent as x-api-application-id).
  */
 router.post('/api/pre-approval-status', async (req, res) => {
   if (!req.session.isAuthenticated) {

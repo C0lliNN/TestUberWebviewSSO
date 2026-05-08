@@ -33,9 +33,6 @@ const UBER = {
   userInfoPath:  '/v3/me',
   // FinProd Issuance — pre-approval status
   preApprovalStatusPath: '/v1/banking/issuance/pre-approval-status',
-  // Sent as the x-api-application-id header. Required by the
-  // pre-approval-status endpoint.
-  apiApplicationId: process.env.UBER_API_APPLICATION_ID || '',
 };
 
 // ── Validate required env vars at startup ────────────────────────────────

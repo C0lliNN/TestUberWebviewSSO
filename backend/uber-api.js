@@ -135,7 +135,7 @@ function getPreApprovalStatus(accessToken, encryptedUuid, programType) {
       method:   'POST',
       headers: {
         'Authorization':       `Bearer ${accessToken}`,
-        'x-api-application-id': UBER.apiApplicationId,
+        'x-api-application-id': UBER.clientId,
         'Content-Type':         'application/json',
         'Content-Length':       Buffer.byteLength(body),
         'Accept':               'application/json',

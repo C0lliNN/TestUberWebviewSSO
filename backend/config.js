@@ -21,7 +21,7 @@ const UBER = {
   clientId:     process.env.UBER_CLIENT_ID     || '',
   clientSecret: process.env.UBER_CLIENT_SECRET || '',
   redirectUri:  process.env.UBER_REDIRECT_URI  || (BASE_URL ? `${BASE_URL}/callback` : ''),
-  scopes:       'profile banking.events.issuance',
+  scopes:       'profile',
 
   // Uber OIDC endpoints
   // The WebSDK hardcodes auth.uber.com — the backend must match.
